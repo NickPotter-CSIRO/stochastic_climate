@@ -1,3 +1,5 @@
+# WERP branch version, include random seeds in sim methods
+
 # NB basepath variable defined outside this script. 
 
 # Helper functions for the ARMA modelling:
