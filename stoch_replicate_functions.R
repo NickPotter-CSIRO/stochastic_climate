@@ -669,7 +669,7 @@ PETData <- R6Class("PETData",
                          
                          cat('---',Rainfall_Observations_Instance$daily_data %>% names,'\n')
                          rain_obs_cid = Rainfall_Observations_Instance$daily_data[pix, paste0('Rain.', cid)]
-                         plot(resids[,paste0('PET_resid.',cid)] ~ rain_obs_cid)
+                         #plot(resids[,paste0('PET_resid.',cid)] ~ rain_obs_cid)
                          m1 = loess(resids[,paste0('PET_resid.',cid)] ~ rain_obs_cid,
                                     span=span)
                          pr = list()
