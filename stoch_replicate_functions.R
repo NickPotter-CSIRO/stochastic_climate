@@ -681,7 +681,7 @@ PETData <- R6Class("PETData",
                          pr$y[1] = 1
                          pr$x[length(pr$x) + 1] = 10**24 # Extrapolation: anything very large just uses the last value
                          pr$y[length(pr$y) + 1] = pr$y[length(pr$y)]
-                         lines(pr$x, pr$y, col='red')
+                         #lines(pr$x, pr$y, col='red')
                          self$residual_model[[as.character(cid)]] = pr
                          #print(m1)
                        }
