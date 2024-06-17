@@ -409,7 +409,7 @@ Rainfall <- R6Class("Rainfall",
                                         suffixes = c('.Annual','.Dec'))
                         self$compare = compare[complete.cases(compare),]
                         ### Include complete years only...
-                        ndays_year = tapply(rainfall_obs$daily_data$Year, rainfall_obs$daily_data$Year, FUN=length)
+                        ndays_year = tapply(self$daily_data$Year, self$daily_data$Year, FUN=length)
                         ndays_year = data.frame(yr=as.numeric(names(ndays_year)), 
                                                 ndays_data = ndays_year) 
                         ndays_year$ndays_actual = 365 + 1 * sapply(ndays_year$yr, FUN=is.leapyear)
