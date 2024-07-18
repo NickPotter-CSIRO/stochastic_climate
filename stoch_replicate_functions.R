@@ -23,11 +23,8 @@ xtract_model <- function(arma.model){
 which.cluster_singleyear <- function(x_, centres){
   # compute squared euclidean distance from a sample to each cluster center
   x_ = as.numeric(x_)
-  #tmp = apply(centers, 1,
-  #            function(v) sum((x_-v)^2))
-  
+
   tmp = apply(sweep(centres,2,x_,FUN="-")**2,1,sum)
-  #hist(tmp)
   return(which.min(tmp))
 }
 which.cluster <- function(x, centers) {
@@ -39,8 +36,6 @@ which.cluster <- function(x, centers) {
 }  
 
 get_MoF_fragyrs <- function(asim, compare, SIM_START_YEAR){
-  #C = NULL
-  ##browser()
   nC = dim(asim)[2]
   frags = data.frame(Year = numeric(), fragyr = numeric())
   
@@ -68,13 +63,10 @@ get_MoF_fragyrs <- function(asim, compare, SIM_START_YEAR){
     fragix0 = which.cluster_singleyear(asim.scaled[1,],
                                        compare.scaled[,2:(nC+1)])
   }
-  #  stop('here')
   fragyr = compare$Year[fragix0]
   cc = compare[fragix0,-1]
   csc=compare.scaled[fragix0,-1]
   
-  #print(data.frame(Year=sim_year,
-  #                 fragyr=fragyr))
   newrow = cbind(data.frame(Year=sim_year,
                             fragyr=fragyr),
                  csc)
@@ -84,9 +76,6 @@ get_MoF_fragyrs <- function(asim, compare, SIM_START_YEAR){
     fragix = which.cluster_singleyear(cbind(data.frame(t(asim.scaled[nsim+1,])),
                                             frags[nsim,(nC+3):(2*nC+2)]),
                                       compare.scaled[,-1])
-    #matplot(t(compare.scaled[,2:(2*nC+1)]))
-    #lines(as.numeric(cbind(data.frame(t(asim.scaled[nsim+1,])), frags[nsim, (nC+3):(2*nC+2)])))
-    #lines(as.numeric(compare.scaled[fragix,2:(2*nC+1)]), col='red')
     fragyr = compare$Year[fragix]
     cc = compare[fragix,-1]
     csc = compare.scaled[fragix,-1]
@@ -94,9 +83,7 @@ get_MoF_fragyrs <- function(asim, compare, SIM_START_YEAR){
                               fragyr=fragyr),
                    csc)
     frags = rbind(frags, newrow)  
-    #print(frags)
   }
-  #frags
   # Multiply the standard deviation back in
   frags_unscaled = cbind(frags[,1:2],
                          sweep(frags[,-c(1:2)], 2, 
@@ -108,7 +95,6 @@ get_MoF_fragyrs <- function(asim, compare, SIM_START_YEAR){
 
 MoF_annual <- function(asim, compare, SIM_START_YEAR, nClusters=NA){
   nC = dim(asim)[2]
-  #cat('Number of columns: ',nC,'\n')
   if (is.na(nClusters)){
     # no clusters - regular method of fragments
     unclustered_res = get_MoF_fragyrs(asim, compare, SIM_START_YEAR)
@@ -119,7 +105,6 @@ MoF_annual <- function(asim, compare, SIM_START_YEAR, nClusters=NA){
     nCluster = NA
     comp = NA
     comp.scaled = NA
-    ##browser()
     compare.scaled = cbind(data.frame(Year=compare[,1]),
                            sweep(compare[,-1], 2, 
                                  apply(compare[,-1],2,sd),
@@ -255,7 +240,6 @@ disaggregate <- function(annual_frags, asim,
   } else{
     X_present = F
   }
-  #names(df)[-c(1,2)] = gsub(names(df)[-c(1,2)], pattern="X",replacement="")
   df2=merge(df, aacd %>% dplyr::select(matches('Year') |
                                          starts_with('Rain')),
             by.x='fragyr', by.y='Year')
@@ -284,8 +268,6 @@ disaggregate <- function(annual_frags, asim,
   daily.rain.sim.m$variable = gsub(daily.rain.sim.m$variable, 
                                    pattern = 'Rain.',
                                    replacement='')
-  #print(daily.rain.sim.m %>% head)
-  #browser() 
   # merge with scaling factor and scale:
   mg2 = merge(daily.rain.sim.m, df2.c[,c('Sim.Year','variable','scaling_factor')],
               by=c('Sim.Year', 'variable'))
@@ -309,7 +291,6 @@ disaggregate <- function(annual_frags, asim,
   nd2$Sim.Year = as.numeric(as.character(nd2$Sim.Year))
   
   nd2$ndays.actual = sapply(nd2[,1],FUN=is.leapyear)*1+28
-  #browser()
   # Just add a zero rainfall day on 29th Feb that shouldn't be there
   toadd = nd2[which(nd2$ndays.sim<nd2$ndays.actual),'Sim.Year']
   feb29s = data.frame(matrix(rep.int(0,length(toadd)*nC), nrow=length(toadd)))
@@ -352,6 +333,8 @@ Rainfall <- R6Class("Rainfall",
                       tr_vcvmat = NULL,
                       monthly_values = NULL,
                       compare = NULL,
+                      model = NULL,
+                      transformed_model = NULL,
                       ENSO_rainfall_model_parameters = NULL,
                       ENSO_model_fitted_dates = NULL,
                       initialize = function(list_of_data) {
@@ -371,28 +354,21 @@ Rainfall <- R6Class("Rainfall",
                         self$daily_data$Day = as.numeric(substr(self$daily_data$YMD, 9, 10))
                       },
                       
-                      monthly_aggregation = function(){#whole.months.only = TRUE){
+                      monthly_aggregation = function(){
                         nC = length(self$CIDs)
                         self$monthly_values = aggregate(self$daily_data[,2:(1+nC)],
                                                         by = list(Year=self$daily_data$Year,
                                                                   Month=self$daily_data$Month),
                                                         FUN=sum)
-                        #if (whole.months.only){
-                        #  month_counts = aggregate(self$daily_data[,2:(1+nC)],
-                        #                           by = list(Year=self$daily_data$Year,
-                        #                                     Month=self$daily_data$Month),
-                        #                           FUN=count)
-                        #  month_days = mapply(ndays.month,
-                        #                      self$monthly_values$Month,
-                        #                      self$monthly_values$Year)
-                        #  self$monthly_values = self$monthly_values[which(month_counts == month_days)]
-                        #}
                       },
                       annual_aggregation = function(){
                         nC = length(self$CIDs)
                         self$annual_values = aggregate(self$daily_data[,2:(1+nC)],
                                                        by = list(Year=self$daily_data$Year),
                                                        FUN=sum)
+                        if (ncol(self$annual_values) == 2){
+                          names(self$annual_values)[2] = names(self$daily_data)[2]
+                        }
                       },
                       make_compare = function(){
                         if (is.null(self$monthly_values)){
@@ -432,7 +408,7 @@ Rainfall <- R6Class("Rainfall",
                                                                      transformed_intercept = numeric(),
                                                                      transformed_slope = numeric(),
                                                                      transformed_s2 = numeric())
-                        if (is.null(self$annual_values) | is.null(self$annual_values)){
+                        if (is.null(self$annual_values)){
                           stop('Error in fit_ENSO_model(): annual_values missing, need to call annual_aggregation()?')
                         }
                         mgd = merge(self$annual_values, 
@@ -472,12 +448,19 @@ Rainfall <- R6Class("Rainfall",
                           
                           r = r + 1
                         }
+                        self$model = linear_fit
+                        self$transformed_model = transformed_linear_fit
                         self$ENSO_rainfall_model_parameters = ENSO_rainfall_model_parameters_
                       
                         # Now calculate variance-covariance matrices
                         
-                        self$raw_vcvmat = cov(mgd[,paste0('Rain.', self$CIDs)])
-                        self$tr_vcvmat = cov(mgd[,paste0('bcRain.', self$CIDs)])
+                        if (length(self$CIDs) > 1){
+                          self$raw_vcvmat = cov(mgd[,paste0('Rain.', self$CIDs)])
+                          self$tr_vcvmat = cov(mgd[,paste0('bcRain.', self$CIDs)])
+                        } else{
+                          self$raw_vcvmat = matrix(var(mgd[,2]))
+                          self$tr_vcvmat = matrix(var(mgd[,4]))
+                        }
                         
                         
                       },
@@ -496,10 +479,6 @@ Rainfall <- R6Class("Rainfall",
                           covmat = self$raw_vcvmat
                         }
                         # Previously, random errors were added in after inverse box-cox transform
-                        # # Previously, random errors were added in after inverse box-cox transform
-                        # gen_replicate <- function(sim_soi, bcvcvmat, lr_params = ENSO_rain_params,
-                        #                           NR=1, CIDS_=CIDs){
-                        #   CIDs = NA
                         nC = length(self$CIDs)
                         nY = length(ENSO_ts)
                         simresids = array(NA,
@@ -508,15 +487,13 @@ Rainfall <- R6Class("Rainfall",
                         for (i in 1:nR){
                           simresids[,,i] = mvrnorm(n=nY,
                                                    mu=rep.int(0,nC),
-                                                   Sigma=covmat)#self$tr_vcvmat)
+                                                   Sigma=covmat)
                         }
-                        dimnames(simresids)[[2]] = self$CIDs
-                        #   
-                        #bcsims = simresids # copy
-                        #sims = bcsims #copy
-                        #   
+
+                        if (length(self$CIDs) > 1){
+                          dimnames(simresids)[[2]] = self$CIDs
+                        }
                         bcsims = NULL
-                        ###browser()
                         for (cid in self$CIDs){
                           bcmean_rainf = self$predict_rain_from_ENSO(ENSO_ts_=ENSO_ts, 
                                                                         cid_=cid, 
@@ -529,16 +506,17 @@ Rainfall <- R6Class("Rainfall",
                         if (nR > 1){
                           bcsims = bcsims[,,rep(1,nR)]
                         }
+                        if (length(self$CIDs) == 1){
+                          dim(bcsims) = c(dim(bcsims)[1],1,dim(bcsims)[2])
+                        }
                         
                         dimnames(bcsims)[[2]] = self$CIDs
-                        
                         sims = bcsims + simresids
+
                         for (xcid in dimnames(bcsims)[[2]]){
                           ix = which(as.character(self$ENSO_rainfall_model_parameters$CID) == as.character(xcid))
                           if (transformed){
                             sims[,xcid,] = InvBoxCox(sims[,xcid,],
-                                                     #biasadj=TRUE,
-                                                     #fvar=self$ENSO_rainfall_model_parameters[ix,'raw_s2'],
                                                      lambda = self$ENSO_rainfall_model_parameters[ix,'Lambda'])
                           }
                         }
@@ -552,13 +530,8 @@ Rainfall <- R6Class("Rainfall",
                         } else{
                           col_prefix = 'raw_'
                         }
-                        #cid_n = as.numeric(cid_)
-                        
+
                         ix = which(as.character(self$ENSO_rainfall_model_parameters[,'CID']) == as.character(cid_))
-                        # print(as.character(self$ENSO_rainfall_model_parameters[,'CID']))
-                        # print(as.character(cid_))
-                        # print(ix)
-                        # print(self$ENSO_rainfall_model_parameters[ix,])
                         return(ENSO_ts_ * self$ENSO_rainfall_model_parameters[ix, paste0(col_prefix, 'slope')] +
                                  self$ENSO_rainfall_model_parameters[ix, paste0(col_prefix, 'intercept')])
                       }
@@ -575,9 +548,6 @@ PETData <- R6Class("PETData",
                      CIDs = NULL,
                      cosine_parameters = NULL,
                      residual_model = NULL,
-                     #annual_values = NULL,
-                     #monthly_values = NULL,
-                     #compare = NULL,
                      initialize = function(list_of_data) {
                        self$list_of_data <- list_of_data
                        self$CIDs <- names(list_of_data)
@@ -620,7 +590,6 @@ PETData <- R6Class("PETData",
                          d2 = self$daily_data[ix,
                                               paste0('PET.',
                                                      cid_)]
-                         #browser()
                          # First calculate 95% envelope of data:
                          if (envelope){
                            f_envelope = tapply(X=d2,
@@ -634,7 +603,6 @@ PETData <- R6Class("PETData",
                                        # param3 is occurrence of maximum value (jday)
                                        self$daily_data$jday_offset0[ix][which(d2 == max(d2,na.rm=T))[1]])
                        
-                         # 
                          res = optim(par=init_params,
                                      fn = PET_model_error,
                                      CID=cid_,
@@ -667,7 +635,6 @@ PETData <- R6Class("PETData",
                          
                          cat('---',Rainfall_Observations_Instance$daily_data %>% names,'\n')
                          rain_obs_cid = Rainfall_Observations_Instance$daily_data[pix, paste0('Rain.', cid)]
-                         #plot(resids[,paste0('PET_resid.',cid)] ~ rain_obs_cid)
                          m1 = loess(resids[,paste0('PET_resid.',cid)] ~ rain_obs_cid,
                                     span=span)
                          pr = list()
@@ -675,18 +642,14 @@ PETData <- R6Class("PETData",
                          pr$x = c(0,
                                   as.numeric(quantile(Filter(function(x) x > 0, rain_obs_cid), 
                                                       probs = seq(from=0,to=0.99,length.out=99))))
-                         #10**24)
                          pr$x[1] = -10**-10 # This allows zero rainfall days in the call to "approx" when simulating
                          pr$y = predict(m1, newdata=pr$x)
                          pr$y[1] = 1
                          pr$x[length(pr$x) + 1] = 10**24 # Extrapolation: anything very large just uses the last value
                          pr$y[length(pr$y) + 1] = pr$y[length(pr$y)]
-                         #lines(pr$x, pr$y, col='red')
                          self$residual_model[[as.character(cid)]] = pr
-                         #print(m1)
                        }
                        self$residual_model[['asfd']] = NULL
-                       #return(m1)
                      },
                      PETf = function(x, pars) { 
                        
@@ -744,14 +707,10 @@ PETData <- R6Class("PETData",
                        pet_sim[,self$CIDs] = NA
                        
                        for (cid in self$CIDs){
-                       #for (ic in 4:dim(pet_sim)[2]){
                          ccid = as.character(cid)
                          ic = which(names(pet_sim)==ccid)
                          
-                         #cid = names(pet_sim)[ic]
-                         #print(ccid)
-                         #print(self$residual_mode[[ccid]])
-                         
+
                          pet_sim[,ic] = self$PETf(jday, self$cosine_parameters[[cid]])
                          PET_rainfall_factors = approx(x=self$residual_model[[ccid]]$x, 
                                                        y=self$residual_model[[ccid]]$y, 
@@ -865,7 +824,7 @@ IPO_Obs <- R6Class("IPO_Obs",
                      model_nointercept = NULL,
                      model_intercept = NULL,
                      year_filter = NULL,
-                     initialize = function(fpath=paste0(basepath, #="//fs1-cbr.nexus.csiro.au/{lw-hydroclimate}/work/
+                     initialize = function(fpath=paste0(basepath, 
                                                         "pot063/SEA_stoch/new/tpi.timeseries.ersstv5.data"),
                                            start_year = 1900,
                                            end_year = 2030,
@@ -920,8 +879,7 @@ IPO_Obs <- R6Class("IPO_Obs",
                          }
                          plot(ecdf(self$annual_data$IPO_annual),add=T)
                          
-                       #}
-                       
+
                      
                     
                      
@@ -945,7 +903,6 @@ ENSO_Obs <- R6Class("ENSO_Obs",
                                             start_month = NULL){
                         ensowide=(read.table(fpath,skip=3,nrows=72,header=T))
                         names(ensowide) = c('YEAR', 1:12)
-                        #browser()
                         if (!is.null(start_month)){
                           ensolong = ensowide %>% melt(id.vars=1)
                           cd=calendar2water(ensolong$YEAR, 
@@ -975,8 +932,6 @@ ENSO_Obs <- R6Class("ENSO_Obs",
                         self$fitted_dates = c(min(mgd$Year),
                                               max(mgd$Year))
                         
-                        # self$model = auto.arima(x=mgd[,'ENSO_annual'], 
-                        #                         xreg=mgd[,'IPO_annual'])
                         self$model_intercept = mean(mgd[,'ENSO_annual'])
                         self$model_nointercept = auto.arima(x=mgd[,'ENSO_annual'] - mean(mgd[,'ENSO_annual']), 
                                                             xreg=mgd[,'IPO_annual'])
