@@ -866,7 +866,7 @@ IPO_Obs <- R6Class("IPO_Obs",
                        return(simulated)  
                      },
                      plot_sims = function(NREPS=50){
-                       if (is.null(self$model)){
+                       if (is.null(self$model_nointercept)){
                          stop('Error in plot_sims(): need to fit model first')
                        }
                          plot(ecdf(self$annual_data$IPO_annual),
