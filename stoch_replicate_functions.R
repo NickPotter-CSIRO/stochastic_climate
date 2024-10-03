@@ -225,6 +225,10 @@ disaggregate <- function(annual_frags, asim,
   # aacd is a copy of all_annual_climate_data
   # adcd is a copy of all_daily_climate_data
   
+  if (is.null(colnames(asim))){
+    stop('Error in disaggregate(): asim needs colnames otherwise simulation results in NAs. (See construction of df2.m and df2.c)')
+  }
+  
   nC = dim(asim)[2] # number of catchments
   
   # merge simulated annual data and observed annual rainfall from frag years
@@ -796,7 +800,6 @@ Simulation <- R6Class("Simulation",
                           
                         },
                         disagg = function(Observations_Instance){
-                          
                           if (is.null(self$fragyrs)){
                             stop("Error in Simulation: disagg_annual() needs to be called before disagg().\n  Did you call get_frags() (doesn't set attributes)")
                           }
@@ -849,7 +852,7 @@ IPO_Obs <- R6Class("IPO_Obs",
                      },
                      fit = function(){
                        ipomod = auto.arima(as.vector(self$annual_data$IPO_annual - mean(self$annual_data$IPO_annual)),
-                                           max.order=20)
+                                           max.order=20, d = 0)
                        self$model_nointercept = ipomod
                        self$model_intercept = mean(self$annual_data$IPO_annual)
                      },
