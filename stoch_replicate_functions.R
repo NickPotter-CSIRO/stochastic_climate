@@ -307,10 +307,11 @@ disaggregate <- function(annual_frags, asim,
   dropix = which((daily.sim$Month == 2) & (daily.sim$Day==29) & (daily.sim$Sim.Year %in% toremove))
   # Copy rainfall from extra 29ths onto the day before to preserve monthly/annual totals
   replaceix = dropix - 1
-  daily.sim[replaceix,-c(1:3)] = daily.sim[replaceix,-c(1:3)] + daily.sim[dropix,-c(1:3)]
-  # Drop 29ths
-  daily.sim = daily.sim[-dropix, ]
-  
+  if (length(replaceix) > 0){
+    daily.sim[replaceix,-c(1:3)] = daily.sim[replaceix,-c(1:3)] + daily.sim[dropix,-c(1:3)]
+    # Drop 29ths
+    daily.sim = daily.sim[-dropix, ]
+  }  
   # resort by date
   daily.sim = daily.sim[order(daily.sim$Sim.Year,daily.sim$Month,daily.sim$Day),]
   
