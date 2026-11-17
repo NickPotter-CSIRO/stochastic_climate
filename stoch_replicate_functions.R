@@ -905,7 +905,7 @@ ENSO_Obs <- R6Class("ENSO_Obs",
                                             start_year = 1900,
                                             end_year = 2030,
                                             start_month = NULL){
-                        ensowide=(read.table(fpath,skip=3,nrows=72,header=T))
+                        ensowide=(read.table(fpath,skip=3,header=T))
                         names(ensowide) = c('YEAR', 1:12)
                         if (!is.null(start_month)){
                           ensolong = ensowide %>% melt(id.vars=1)
